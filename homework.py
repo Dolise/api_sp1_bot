@@ -78,11 +78,10 @@ def send_message(message, bot_client):
     message - text to send
     bot_client - telegram.Bot object
     """
-    logging.info('Сообщение отправлено')
     try:
         return bot_client.send_message(chat_id=CHAT_ID, text=message)
     except telegram.error.TelegramError as e:
-        logging.error(f'Проблема с телеграмом. {e}')
+        raise telegram.error.TelegramError(f'Проблема с телеграмом. {e}')
 
 
 def main():
@@ -103,6 +102,7 @@ def main():
                     parse_homework_status(new_homework.get('homeworks')[0]),
                     bot_client=bot
                 )
+            logging.info('Сообщение отправлено')
             current_timestamp = new_homework.get(
                 'current_date',
                 current_timestamp
@@ -111,7 +111,7 @@ def main():
 
         except Exception as e:
             message = f'Бот столкнулся с ошибкой: {e}'
-            logging.error(e)
+            logging.exception(e)
             bot.send_message(chat_id=CHAT_ID, text=message)
             time.sleep(constants.ERROR_TIME_SLEEP)
 
