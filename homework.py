@@ -17,6 +17,9 @@ load_dotenv()
 PRAKTIKUM_TOKEN = os.environ.get('PRAKTIKUM_TOKEN')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
+if PRAKTIKUM_TOKEN is None or TELEGRAM_TOKEN is None or CHAT_ID is None:
+    logging.exception('Нет необходимого токена в .env')
+    raise SystemExit('Не удалось получить токены')
 
 
 def parse_homework_status(homework):
@@ -126,8 +129,5 @@ if __name__ == '__main__':
         filemode='w',
         format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
     )
-    if PRAKTIKUM_TOKEN is None or TELEGRAM_TOKEN is None or CHAT_ID is None:
-        logging.exception('Нет необходимого токена в .env')
-        raise SystemExit('Не удалось получить токены')
     logging.debug('Бот запущен')
     main()
