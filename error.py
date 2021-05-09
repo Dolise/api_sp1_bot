@@ -1,0 +1,2 @@
+class PraktikumApiError(Exception):
+    pass

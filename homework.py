@@ -8,16 +8,10 @@ import telegram
 
 from dotenv import load_dotenv
 
-import constants
+import constants, error
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename='homework.log',
-    filemode='w',
-    format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
-)
 
 PRAKTIKUM_TOKEN = os.environ.get('PRAKTIKUM_TOKEN')
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
@@ -32,17 +26,12 @@ def parse_homework_status(homework):
     """
     homework_name = homework.get('homework_name')
     status = homework.get('status')
-    statuses_messages = {
-        'reviewing': f'Работа {homework_name} взята в ревью.',
-        'rejected': 'К сожалению в работе нашлись ошибки.',
-        'approved': ('Ревьюеру всё понравилось, '
-                     'можно приступать к следующему уроку.')
-    }
-    if homework_name is None or status is None\
-            or status not in statuses_messages:
-        raise telegram.error.TelegramError('Ошибка API')
+    if (homework_name is None or status is None
+            or status not in constants.STATUSES_MESSAGES):
+        raise error.PraktikumApiError('API вернул поле с None')
+    message = constants.STATUSES_MESSAGES[status]
     return (f'У вас проверили работу "{homework_name}"!'
-            f'\n\n{statuses_messages[status]}')
+            f'\n\n{message.format(homework_name=homework_name)}')
 
 
 def get_homework_statuses(current_timestamp):
@@ -54,21 +43,28 @@ def get_homework_statuses(current_timestamp):
     try:
         dt.datetime.utcfromtimestamp(current_timestamp)
     except TypeError:
-        raise TypeError('Проблемы с current_timestamp')
-    else:
-        headers = {
-            'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'
-        }
-        params = {'from_date': current_timestamp}
-        homework_statuses = requests.get(
-            constants.HOMEWORK_STATUSES_API_LINK,
-            params=params,
-            headers=headers
-        )
-        if homework_statuses is None:
+        current_timestamp = int(time.time())
+    finally:
+        try:
+            params = {'from_date': current_timestamp}
+            response = requests.get(
+                constants.HOMEWORK_STATUSES_API_LINK,
+                params=params,
+                headers=constants.HOMEWORK_STATUSES_HEADERS
+            )
+        except requests.exceptions.RequestException:
+            raise error.PraktikumApiError('Проблема с запросом к API')
+        homework_statuses = response.json()
+        if 'error' in homework_statuses:
+            error_explanation = homework_statuses.get('error')
+            raise error.PraktikumApiError(f'Произошла ошибка при запросе к API: {error_explanation}')
+        elif 'code' in homework_statuses:
+            code_explanation = homework_statuses.get('code')
+            raise error.PraktikumApiError(f'Произошла ошибка при запросе: {code_explanation}')
+        elif response is None:
             logging.error('API вернул None')
             return dict()
-        return homework_statuses.json()
+        return homework_statuses
 
 
 def send_message(message, bot_client):
@@ -81,7 +77,7 @@ def send_message(message, bot_client):
     try:
         return bot_client.send_message(chat_id=CHAT_ID, text=message)
     except telegram.error.TelegramError as e:
-        raise telegram.error.TelegramError(f'Проблема с телеграмом. {e}')
+        raise telegram.error.TelegramError(f'Проблема при отправке сообщения. {e}')
 
 
 def main():
@@ -92,7 +88,7 @@ def main():
     except telegram.error.TelegramError:
         logging.exception('Проблема с созданием бота')
         raise SystemExit('Не удалось создать бота')
-    current_timestamp = int(time.time())
+    current_timestamp = int(time.time()) - 100000
 
     while True:
         try:
@@ -117,5 +113,14 @@ def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.DEBUG,
+        filename='homework.log',
+        filemode='w',
+        format='%(asctime)s, %(levelname)s, %(name)s, %(message)s'
+    )
+    if PRAKTIKUM_TOKEN is None or TELEGRAM_TOKEN is None or CHAT_ID is None:
+        logging.exception('Нет необходимого токена в .env')
+        raise SystemExit('Не удалось получить токены')
     logging.debug('Бот запущен')
     main()
