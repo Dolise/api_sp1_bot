@@ -8,7 +8,8 @@ import telegram
 
 from dotenv import load_dotenv
 
-import constants, error
+import constants
+import error
 
 load_dotenv()
 
@@ -57,10 +58,14 @@ def get_homework_statuses(current_timestamp):
         homework_statuses = response.json()
         if 'error' in homework_statuses:
             error_explanation = homework_statuses.get('error')
-            raise error.PraktikumApiError(f'Произошла ошибка при запросе к API: {error_explanation}')
+            raise error.PraktikumApiError(
+                f'Произошла ошибка при запросе к API: {error_explanation}'
+            )
         elif 'code' in homework_statuses:
             code_explanation = homework_statuses.get('code')
-            raise error.PraktikumApiError(f'Произошла ошибка при запросе: {code_explanation}')
+            raise error.PraktikumApiError(
+                f'Произошла ошибка при запросе: {code_explanation}'
+            )
         elif response is None:
             logging.error('API вернул None')
             return dict()
@@ -77,7 +82,9 @@ def send_message(message, bot_client):
     try:
         return bot_client.send_message(chat_id=CHAT_ID, text=message)
     except telegram.error.TelegramError as e:
-        raise telegram.error.TelegramError(f'Проблема при отправке сообщения. {e}')
+        raise telegram.error.TelegramError(
+            f'Проблема при отправке сообщения. {e}'
+        )
 
 
 def main():
