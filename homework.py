@@ -88,7 +88,7 @@ def main():
     except telegram.error.TelegramError:
         logging.exception('Проблема с созданием бота')
         raise SystemExit('Не удалось создать бота')
-    current_timestamp = int(time.time()) - 100000
+    current_timestamp = int(time.time())
 
     while True:
         try:
