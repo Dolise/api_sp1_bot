@@ -50,11 +50,14 @@ def get_homework_statuses(current_timestamp):
         current_timestamp = int(time.time())
     finally:
         try:
+            headers = {
+                'Authorization': f'OAuth {PRAKTIKUM_TOKEN}'
+            }
             params = {'from_date': current_timestamp}
             response = requests.get(
                 constants.HOMEWORK_STATUSES_API_LINK,
                 params=params,
-                headers=constants.HOMEWORK_STATUSES_HEADERS
+                headers=headers
             )
         except requests.exceptions.RequestException:
             raise error.PraktikumApiError('Проблема с запросом к API')
