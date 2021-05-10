@@ -1,4 +1,3 @@
-
 # links
 ROOT_LINK = 'https://praktikum.yandex.ru/'
 API_LINK = f'{ROOT_LINK}api/'
